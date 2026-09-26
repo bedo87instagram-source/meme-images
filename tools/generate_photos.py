@@ -16,6 +16,8 @@ import time
 from pathlib import Path
 
 import requests
+from io import BytesIO
+from PIL import Image, ImageFilter
 
 MODEL = "@cf/black-forest-labs/flux-1-schnell"
 OUT_DIR = Path("images/generated")
@@ -65,6 +67,7 @@ def main():
             continue
         print(f"generating: {job['name']} -> {job['prompt'][:80]}...")
         img_bytes = generate_one(token, account_id, job["prompt"])
+        img_bytes = extend_to_4x5(img_bytes)
         out_path.write_bytes(img_bytes)
         print(f"  wrote {out_path} ({len(img_bytes)} bytes)")
         made += 1
@@ -73,3 +76,21 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def extend_to_4x5(img_bytes, target=(1080, 1350)):
+    """Flux returns a 1024x1024 square. Extend it to Instagram's 4:5 portrait
+    ratio by padding top/bottom with a blurred, darkened stretch of the same
+    image, so the studio backdrop continues naturally instead of being
+    cropped (which risks cutting off the subject's head or feet)."""
+    tw, th = target
+    im = Image.open(BytesIO(img_bytes)).convert("RGB")
+    scale = tw / im.width
+    fg = im.resize((tw, round(im.height * scale)), Image.LANCZOS)
+    bg = fg.resize((tw, th), Image.LANCZOS).filter(ImageFilter.GaussianBlur(40))
+    canvas = bg.copy()
+    y = (th - fg.height) // 2
+    canvas.paste(fg, (0, y))
+    out = BytesIO()
+    canvas.save(out, "JPEG", quality=92)
+    return out.getvalue()
