@@ -23,9 +23,10 @@ OUT_DIR = Path("images/generated")
 
 def generate_one(token, account_id, prompt, seed=None, steps=8, retries=3):
     url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{MODEL}"
+    # Note: this model's schema rejects a top-level "seed" property (HTTP 400,
+    # "Additional or unevaluated properties '/seed' at '/' not allowed").
+    # Confirmed via a real failed run's log. steps is accepted (max 8).
     body = {"prompt": prompt, "steps": steps}
-    if seed is not None:
-        body["seed"] = seed
     last_err = None
     for attempt in range(retries):
         try:
@@ -63,7 +64,7 @@ def main():
             print(f"skip (exists): {out_path}")
             continue
         print(f"generating: {job['name']} -> {job['prompt'][:80]}...")
-        img_bytes = generate_one(token, account_id, job["prompt"], seed=job.get("seed"))
+        img_bytes = generate_one(token, account_id, job["prompt"])
         out_path.write_bytes(img_bytes)
         print(f"  wrote {out_path} ({len(img_bytes)} bytes)")
         made += 1
