@@ -1,3 +1,2 @@
-generating: test_001 -> Editorial fashion photograph of a young woman standing confidently, wearing an o...
-  wrote images/generated/test_001.jpg (386597 bytes)
-done, 1 image(s) generated
+skip (exists): images/generated/test_001.jpg
+done, 0 image(s) generated
