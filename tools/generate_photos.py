@@ -53,6 +53,23 @@ def generate_one(token, account_id, prompt, seed=None, steps=8, retries=3):
     raise RuntimeError(f"generation failed after {retries} attempts: {last_err}")
 
 
+def extend_to_4x5(img_bytes, target=(1080, 1350)):
+    """Flux returns a 1024x1024 square. Extend it to Instagram's 4:5 portrait
+    ratio by padding top/bottom with a blurred, darkened stretch of the same
+    image, so the studio backdrop continues naturally instead of being
+    cropped (which risks cutting off the subject's head or feet)."""
+    tw, th = target
+    im = Image.open(BytesIO(img_bytes)).convert("RGB")
+    scale = tw / im.width
+    fg = im.resize((tw, round(im.height * scale)), Image.LANCZOS)
+    bg = fg.resize((tw, th), Image.LANCZOS).filter(ImageFilter.GaussianBlur(40))
+    canvas = bg.copy()
+    y = (th - fg.height) // 2
+    canvas.paste(fg, (0, y))
+    out = BytesIO()
+    canvas.save(out, "JPEG", quality=92)
+    return out.getvalue()
+
 def main():
     token = os.environ["CF_API_TOKEN"]
     account_id = os.environ["CF_ACCOUNT_ID"]
@@ -78,19 +95,3 @@ if __name__ == "__main__":
     main()
 
 
-def extend_to_4x5(img_bytes, target=(1080, 1350)):
-    """Flux returns a 1024x1024 square. Extend it to Instagram's 4:5 portrait
-    ratio by padding top/bottom with a blurred, darkened stretch of the same
-    image, so the studio backdrop continues naturally instead of being
-    cropped (which risks cutting off the subject's head or feet)."""
-    tw, th = target
-    im = Image.open(BytesIO(img_bytes)).convert("RGB")
-    scale = tw / im.width
-    fg = im.resize((tw, round(im.height * scale)), Image.LANCZOS)
-    bg = fg.resize((tw, th), Image.LANCZOS).filter(ImageFilter.GaussianBlur(40))
-    canvas = bg.copy()
-    y = (th - fg.height) // 2
-    canvas.paste(fg, (0, y))
-    out = BytesIO()
-    canvas.save(out, "JPEG", quality=92)
-    return out.getvalue()
