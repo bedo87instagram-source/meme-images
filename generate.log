@@ -1,0 +1,10 @@
+generating: test_001 -> Editorial fashion photograph of a young woman standing confidently, wearing an o...
+Traceback (most recent call last):
+  File "/home/runner/work/meme-images/meme-images/tools/generate_photos.py", line 74, in <module>
+    main()
+  File "/home/runner/work/meme-images/meme-images/tools/generate_photos.py", line 66, in main
+    img_bytes = generate_one(token, account_id, job["prompt"], seed=job.get("seed"))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/meme-images/meme-images/tools/generate_photos.py", line 50, in generate_one
+    raise RuntimeError(f"generation failed after {retries} attempts: {last_err}")
+RuntimeError: generation failed after 3 attempts: HTTP 400: {"errors":[{"message":"AiError: Bad input: Error: Additional or unevaluated properties '/seed' at '/' not allowed (7368da52-2a20-420e-981b-c0936950ea66)","code":5006}],"success":false,"result":{},"messages":[]}
