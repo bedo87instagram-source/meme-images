@@ -1,2 +1,8 @@
-skip (exists): images/generated/test_001.jpg
-done, 0 image(s) generated
+generating: test_001 -> Editorial fashion photograph of a young woman standing confidently, wearing an o...
+Traceback (most recent call last):
+  File "/home/runner/work/meme-images/meme-images/tools/generate_photos.py", line 78, in <module>
+    main()
+  File "/home/runner/work/meme-images/meme-images/tools/generate_photos.py", line 70, in main
+    img_bytes = extend_to_4x5(img_bytes)
+                ^^^^^^^^^^^^^
+NameError: name 'extend_to_4x5' is not defined
