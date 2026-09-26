@@ -1,0 +1,41 @@
+name: Generate fashion photos
+
+on:
+  workflow_dispatch:
+    inputs:
+      jobs_file:
+        description: "Path to a JSON jobs file in this repo (e.g. jobs/test.json)"
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Generate images
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: python tools/generate_photos.py ${{ inputs.jobs_file }}
+      - name: Commit generated images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add images/generated
+          if ! git diff --cached --quiet; then
+            git commit -m "Generate fashion photos (${{ inputs.jobs_file }})"
+            git pull --rebase --autostash
+            git push
+          else
+            echo "nothing new to commit"
+          fi
