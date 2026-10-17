@@ -47,7 +47,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add images batches build.log
+          git add build.log
+          for d in images batches; do [ -d "$d" ] && git add "$d"; done
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "Build ${{ inputs.spec }} [exit ${{ steps.build.outputs.exit_code }}]"
           for attempt in 1 2 3 4 5; do
