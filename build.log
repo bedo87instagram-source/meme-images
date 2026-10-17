@@ -1,0 +1,6 @@
+SPEC ERROR: entry 4: '#' in pieces -- hashtags are added by post.py
+SPEC ERROR: entry 8: '#' in pieces -- hashtags are added by post.py
+SPEC ERROR: entry 12: '#' in pieces -- hashtags are added by post.py
+SPEC ERROR: entry 16: '#' in pieces -- hashtags are added by post.py
+SPEC ERROR: entry 20: '#' in pieces -- hashtags are added by post.py
+SPEC ERROR: entry 24: '#' in pieces -- hashtags are added by post.py
