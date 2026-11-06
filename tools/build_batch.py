@@ -136,6 +136,27 @@ def fit_size(lines, start, minimum, max_w):
     return minimum
 
 
+def text_overlay(lines, size, top=None, bottom=None, border=24, spacing=18):
+    """Full-frame transparent PNG with the text lines in a dark box. Drawn with
+    PIL instead of ffmpeg drawtext: from Nov 2026 the build machines' newer
+    ffmpeg drew the line-break character as a box glyph, so text rendering no
+    longer depends on the ffmpeg version at all."""
+    img = Image.new("RGBA", (1080, 1920), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    font = ImageFont.truetype(F_BOLD, size)
+    boxes = [d.textbbox((0, 0), line, font=font) for line in lines]
+    widths = [b[2] - b[0] for b in boxes]
+    line_h = max(b[3] - b[1] for b in boxes)
+    block_h = line_h * len(lines) + spacing * (len(lines) - 1)
+    y0 = top if top is not None else 1920 - bottom - block_h
+    x0 = (1080 - max(widths)) // 2
+    d.rectangle((x0 - border, y0 - border, x0 + max(widths) + border, y0 + block_h + border),
+                fill=(0, 0, 0, 140))
+    for i, (line, b) in enumerate(zip(lines, boxes)):
+        d.text((x0 - b[0], y0 + i * (line_h + spacing) - b[1]), line, font=font, fill=(255, 255, 255, 255))
+    return img
+
+
 def make_reel(photo_path, hook, payoff, out_mp4):
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -145,22 +166,15 @@ def make_reel(photo_path, hook, payoff, out_mp4):
         canvas.paste(fg, (0, (1920 - fg.height) // 2))
         vert = tmp / "vertical.jpg"
         canvas.save(vert, quality=92)
-        hook_txt, payoff_txt = tmp / "hook.txt", tmp / "payoff.txt"
-        hook_txt.write_text("\n".join(hook))
-        payoff_txt.write_text(payoff)
-        hs = fit_size(hook, 64, 40, 940)
-        ps = fit_size([payoff], 48, 32, 940)
-        vf = (
-            f"drawtext=fontfile={F_BOLD}:textfile={hook_txt}:fontsize={hs}:fontcolor=white:"
-            f"x=(w-text_w)/2:y=160:line_spacing=12:box=1:boxcolor=black@0.55:boxborderw=24:"
-            f"enable='between(t,0,1.5)',"
-            f"drawtext=fontfile={F_BOLD}:textfile={payoff_txt}:fontsize={ps}:fontcolor=white:"
-            f"x=(w-text_w)/2:y=h-220:box=1:boxcolor=black@0.55:boxborderw=20:"
-            f"enable='between(t,5.5,7)'"
-        )
+        hook_png, payoff_png = tmp / "hook.png", tmp / "payoff.png"
+        text_overlay(list(hook), fit_size(hook, 64, 40, 940), top=160).save(hook_png)
+        text_overlay([payoff], fit_size([payoff], 48, 32, 940), bottom=220, border=20).save(payoff_png)
+        fc = ("[0:v][1:v]overlay=0:0:enable='between(t,0,1.5)'[a];"
+              "[a][2:v]overlay=0:0:enable='between(t,5.5,7)'[v]")
         cmd = ["ffmpeg", "-y", "-loop", "1", "-framerate", "30", "-t", "7", "-i", str(vert),
-               "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-               "-r", "30", str(out_mp4)]
+               "-i", str(hook_png), "-i", str(payoff_png), "-filter_complex", fc, "-map", "[v]",
+               "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+               "-r", "30", "-t", "7", str(out_mp4)]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if r.returncode != 0:
             raise RuntimeError(f"ffmpeg failed: {r.stderr[-1500:]}")
